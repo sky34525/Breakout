@@ -1,0 +1,36 @@
+cmake_minimum_required(VERSION 3.10)
+
+project(Breakout)
+
+set(CMAKE_CXX_STANDARD 11)
+
+find_package(OpenGL REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(GLFW3 REQUIRED glfw3)
+pkg_check_modules(GLM REQUIRED glm)
+
+add_library(glad STATIC ThirdParty/glad/src/glad.c)
+target_include_directories(glad PUBLIC ThirdParty/glad/include)
+
+add_executable(Breakout
+    src/main.cpp
+    src/game.cpp
+    src/shader.cpp
+    src/texture.cpp
+    src/resource_manager.cpp
+)
+
+target_include_directories(Breakout PRIVATE
+    include
+    ThirdParty/glad/include
+    ThirdParty/stb
+    ${GLFW3_INCLUDE_DIRS}
+    ${GLM_INCLUDE_DIRS}
+    ${OPENGL_INCLUDE_DIRS}
+)
+
+target_link_directories(Breakout PRIVATE
+    ${GLFW3_LIBRARY_DIRS}
+)
+
+target_link_libraries(Breakout glad ${GLFW3_LIBRARIES} ${GLM_LIBRARIES} ${OPENGL_LIBRARIES})
