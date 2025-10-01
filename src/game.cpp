@@ -7,6 +7,11 @@
 
 SpriteRenderer  *Renderer;
 
+const glm::vec2 PLAYER_SIZE(100, 20); //玩家对象的尺寸
+const GLfloat PLAYER_VELOCITY(500.0f); //玩家对象的移动速度
+
+GameObject   *Player; //玩家对象
+
 //Keys() 将数组中的所有元素初始化为 0（即 GL_FALSE），如果没有初始化数组中的元素会包含随机值
 //如果是vector则可以不初始化，因为vector会自动初始化所有成员为0
 Game::Game(GLuint width, GLuint height) 
@@ -20,19 +25,50 @@ Game::~Game() {
 
 void Game::Init() {
     // 初始化游戏资源
-    std::cout << "Loading shader..." << std::endl;
     ResourceManager::LoadShader("../shader/sprites.vs", "../shader/sprites.fs", nullptr, "sprite");
-    std::cout << "Shader loaded, ID: " << ResourceManager::GetShader("sprite").ID << std::endl;
 
-    std::cout << "Loading texture..." << std::endl;
+    // Load textures
     ResourceManager::LoadTexture("../textures/awesomeface.png", GL_TRUE, "face");
-    std::cout << "Texture loaded, ID: " << ResourceManager::GetTexture("face").ID << std::endl;
+    ResourceManager::LoadTexture("../textures/background.jpg", GL_FALSE, "background");
+    ResourceManager::LoadTexture("../textures/block.png", GL_FALSE, "block");
+    ResourceManager::LoadTexture("../textures/block_solid.png", GL_FALSE, "block_solid");
+    ResourceManager::LoadTexture("../textures/paddle.png", GL_TRUE, "paddle");
 
-    glm::mat4 projection = glm::ortho(0.0f, static_cast<GLfloat>(this->Width), static_cast<GLfloat>(this->Height), 0.0f, -1.0f, 1.0f);
+    // 加载关卡
+    GameLevel one; one.Load("../game_level/one.lvl", this->Width, this->Height * 0.5);
+    GameLevel two; two.Load("../game_level/two.lvl", this->Width, this->Height * 0.5);
+    GameLevel three; three.Load("../game_level/three.lvl", this->Width, this->Height * 0.5);
+    GameLevel four; four.Load("../game_level/four.lvl", this->Width, this->Height * 0.5);
+    this->Levels.push_back(one);
+    this->Levels.push_back(two);
+    this->Levels.push_back(three);
+    this->Levels.push_back(four);
+    this->Level = 0;
+
+    // 加载玩家挡板
+    glm::vec2 playerPos = glm::vec2(
+        this->Width / 2 - PLAYER_SIZE.x / 2, //水平居中
+        this->Height - PLAYER_SIZE.y * 2      //距离底部两个挡板高度的位置
+    );
+    Player = new GameObject(playerPos, PLAYER_SIZE, ResourceManager::GetTexture("paddle"));
+
+    // 配置渲染器
+    glm::mat4 projection = glm::ortho(0.0f, static_cast<GLfloat>(this->Width), static_cast<GLfloat>(this->Height), 0.0f, -1.0f, 1.0f); //正交投影矩阵
+    /*
+    参数解释：
+    left: 0.0f，表示视口的左边界对应的世界坐标
+    right: static_cast<GLfloat>(this->Width)，表示视口的右边界对应的世界坐标
+    bottom: static_cast<GLfloat>(this->Height)，表示视口的下边界对应的世界坐标
+    top: 0.0f，表示视口的上边界对应的世界坐标
+    near: -1.0f，表示视口的近裁剪面对应的深度值
+    far: 1.0f，表示视口的远裁剪面对应的深度值
+    这样设置后，屏幕左上角的坐标是 (0, 0)，右下角是 (Width, Height)
+    Y轴向下递增，符合计算机图形学的习惯
+    适合2D游戏开发
+    */
     ResourceManager::GetShader("sprite").Use().SetInteger("image", 0); //Use()返回引用类型
     ResourceManager::GetShader("sprite").SetMatrix4("projection", projection);
     Renderer = new SpriteRenderer(ResourceManager::GetShader("sprite"));
-    std::cout << "Game initialized successfully!" << std::endl;
 }
 
 void Game::Update(GLfloat dt) {
@@ -41,11 +77,28 @@ void Game::Update(GLfloat dt) {
 
 void Game::ProcessInput(GLfloat dt) {
     // 处理输入
+    if(this->State == GAME_ACTIVE) {
+        GLfloat velocity = PLAYER_VELOCITY * dt; //根据时间增量调整速度
+        // 移动玩家挡板
+        if (this->Keys[GLFW_KEY_A]) {
+            if (Player->Position.x >= 0) {
+                Player->Position.x -= velocity;
+            }
+        }
+        if (this->Keys[GLFW_KEY_D]) {
+            if (Player->Position.x <= this->Width - Player->Size.x) {
+                Player->Position.x += velocity;
+
+            }
+        }
+    }
 }
 
 void Game::Render() {
     // 渲染游戏
     if (this->State == GAME_ACTIVE) {
-        Renderer->DrawSprite(ResourceManager::GetTexture("face"), glm::vec2(200, 200), glm::vec2(100, 60), 0.0f, glm::vec3(0.0f, 1.0f, 0.0f));
+        Renderer->DrawSprite(ResourceManager::GetTexture("background"), glm::vec2(0, 0), glm::vec2(this->Width, this->Height), 0.0f);
+        this->Levels[this->Level].Draw(*Renderer);
+        Player->Draw(*Renderer);
     }
 }

@@ -4,6 +4,9 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
+#include "game_level.h"
+
+
 // 游戏状态
 enum GameState {
     GAME_ACTIVE,
@@ -33,6 +36,10 @@ public:
     void ProcessInput(GLfloat dt);
     void Update(GLfloat dt);
     void Render();
+
+private:
+    std::vector<GameLevel> Levels;
+    GLuint Level;
 };
 
 #endif

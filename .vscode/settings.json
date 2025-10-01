@@ -28,6 +28,8 @@
         "typeinfo": "cpp",
         "variant": "cpp",
         "vector": "cpp",
-        "fstream": "cpp"
+        "fstream": "cpp",
+        "deque": "cpp",
+        "list": "cpp"
     }
 }

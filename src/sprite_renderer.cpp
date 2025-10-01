@@ -37,7 +37,8 @@ void SpriteRenderer::initRenderData(){
     glBindVertexArray(0);
 }
 
-void SpriteRenderer::DrawSprite(Texture &texture, glm::vec2 postion, glm::vec2 size, GLfloat rotate, glm::vec3 color){
+    //参数有默认值设置在.h文件中
+void SpriteRenderer::DrawSprite(Texture &texture, glm::vec2 postion, glm::vec2 size, GLfloat rotate, glm::vec3 color) {
     this->shader.Use();
     glm::mat4 model = glm::mat4(1.0f); // 必须初始化为单位矩阵，否则后续的矩阵乘法会出错，窗口中没有任何东西
     //当试图在一个场景中用旋转矩阵和缩放矩阵放置一个对象的时候，建议是首先做缩放变换，再旋转，最后才是位移变换。因为矩阵乘法是从右向左执行的，所以我们变换的矩阵顺序是相反的：移动，旋转，缩放。
