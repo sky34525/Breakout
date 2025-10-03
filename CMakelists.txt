@@ -21,6 +21,7 @@ add_executable(Breakout
     src/sprite_renderer.cpp
     src/game_level.cpp
     src/game_object.cpp
+    src/ball_object.cpp
 )
 
 target_include_directories(Breakout PRIVATE

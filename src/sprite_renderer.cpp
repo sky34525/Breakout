@@ -42,10 +42,13 @@ void SpriteRenderer::DrawSprite(Texture &texture, glm::vec2 postion, glm::vec2 s
     this->shader.Use();
     glm::mat4 model = glm::mat4(1.0f); // 必须初始化为单位矩阵，否则后续的矩阵乘法会出错，窗口中没有任何东西
     //当试图在一个场景中用旋转矩阵和缩放矩阵放置一个对象的时候，建议是首先做缩放变换，再旋转，最后才是位移变换。因为矩阵乘法是从右向左执行的，所以我们变换的矩阵顺序是相反的：移动，旋转，缩放。
+    //GLM 的 glm::translate(model, ...) 函数是左乘
+    //所以坐标变换的循序和代码的循序是相反的
+    //坐标原点在屏幕中心
     model = glm::translate(model, glm::vec3(postion, 0.0f)); // 平移
-    model = glm::translate(model, glm::vec3(0.5f * size.x, 0.5f * size.y, 0.0f)); // 移动到旋转中心
+    model = glm::translate(model, glm::vec3(0.5f * size.x, 0.5f * size.y, 0.0f)); // 
     model = glm::rotate(model, rotate, glm::vec3(0.0f, 0.0f, 1.0f)); // 旋转
-    model = glm::translate(model, glm::vec3(-0.5f * size.x, -0.5f * size.y, 0.0f)); // 移动回去
+    model = glm::translate(model, glm::vec3(-0.5f * size.x, -0.5f * size.y, 0.0f)); // 
 
     model = glm::scale(model, glm::vec3(size, 1.0f)); // 缩放
 

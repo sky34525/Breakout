@@ -12,6 +12,8 @@ class GameObject {
 public:
     // 对象状态
     glm::vec2   Position, Size, Velocity;
+    // 该游戏的坐标系是y轴向下递增的，与OpenGL的NDC坐标系不同
+    //Position表示对象的左上角位置
     glm::vec3   Color;
     GLfloat     Rotation; // 旋转角度
     GLboolean   IsSolid; // 是否为坚固的物体（如墙壁）
