@@ -5,6 +5,7 @@
 #include <GLFW/glfw3.h>
 
 #include "game_level.h"
+#include "particle_generator.h"
 
 
 // 游戏状态

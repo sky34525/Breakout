@@ -4,8 +4,8 @@
 BallObject::BallObject()
     : GameObject(), Radius(12.5f), Stuck(true) { }
 
-BallObject::BallObject(glm::vec2 pos, GLfloat radius, glm::vec2 velocity, Texture sprite)
-    : GameObject(pos, glm::vec2(radius * 2, radius * 2), sprite, glm::vec3(1.0f), velocity), Radius(radius), Stuck(true) { }
+BallObject::BallObject(glm::vec2 pos, GLfloat radius, glm::vec2 velocity, Texture sprite, glm::vec3 color)
+    : GameObject(pos, glm::vec2(radius * 2, radius * 2), sprite, color, velocity), Radius(radius), Stuck(true) { }
 
 
 //投影矩阵是渲染管线的一部分，游戏逻辑永远在世界坐标系下进行。
