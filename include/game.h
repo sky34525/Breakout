@@ -14,6 +14,16 @@ enum GameState {
     GAME_WIN
 };
 
+// 方向枚举
+enum Direction {
+    UP,
+    RIGHT,
+    DOWN,
+    LEFT
+};
+
+typedef std::tuple<GLboolean, Direction, glm::vec2> Collision; // 碰撞结果
+
 // Game holds all game-related state and functionality.
 // Combines all game-related data into a single class for
 // easy access to each of the components and manageability.
@@ -36,10 +46,17 @@ public:
     void ProcessInput(GLfloat dt);
     void Update(GLfloat dt);
     void Render();
+    void DoCollisions(); //处理碰撞
 
 private:
     std::vector<GameLevel> Levels;
     GLuint Level;
+
+    Collision CheckCollision(BallObject &one, GameObject &two); // 检查两个游戏对象是否碰撞
+
+    Direction VectorDirection(glm::vec2 target);
+
+    void Dead(); // 处理玩家死亡
 };
 
 #endif

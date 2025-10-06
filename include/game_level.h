@@ -3,12 +3,14 @@
 #include <vector>
 
 #include "game_object.h"
+#include "ball_object.h"
 #include "sprite_renderer.h"
 #include "resource_manager.h"
 
 class GameLevel {
 public:
-    /*Bricks 是一个存储 GameObject 对象的动态数组（vector）
+    /*
+    Bricks 是一个存储 GameObject 对象的动态数组（vector）
     每个 GameObject 对象表示关卡中的一个砖块
     使用 vector 的好处是可以动态调整大小，方便添加和删除砖块
     */

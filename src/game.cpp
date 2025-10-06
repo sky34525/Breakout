@@ -90,6 +90,8 @@ void Game::Init() {
 void Game::Update(GLfloat dt) {
     // 更新游戏状态
     Ball->Move(dt, this->Width); //每帧都需要更新球的位置
+    this->DoCollisions(); //每帧都需要检查碰撞
+    this->Dead(); //检查玩家是否死亡
 }
 
 void Game::ProcessInput(GLfloat dt) {
@@ -124,5 +126,123 @@ void Game::Render() {
         this->Levels[this->Level].Draw(*Renderer);
         Player->Draw(*Renderer);
         Ball->Draw(*Renderer);
+    }
+}
+
+void Game::DoCollisions() {
+   for (GameObject &box : this->Levels[this->Level].Bricks) {
+
+        // 砖块碰撞处理
+        if(!box.Destroyed) {
+            Collision collision = CheckCollision(*Ball, box);
+            if (std::get<0>(collision)) { // 如果发生碰撞
+                // 如果砖块不是坚固的，标记为已销毁
+                if (!box.IsSolid)
+                    box.Destroyed = GL_TRUE;
+                // 碰撞后反转球的速度
+                Direction dir = std::get<1>(collision);
+                glm::vec2 diff_vector = std::get<2>(collision);
+                if (dir == LEFT || dir == RIGHT) { // 水平碰撞
+                    Ball->Velocity.x = -Ball->Velocity.x; // 反转水平速度
+                    // 重定位
+                    GLfloat penetration = Ball->Radius - std::abs(diff_vector.x);
+                    if (dir == LEFT)
+                        Ball->Position.x += penetration; // 防止球卡在砖块内
+                    else
+                        Ball->Position.x -= penetration; // 防止球卡在砖块内
+                } else { // 垂直碰撞
+                    Ball->Velocity.y = -Ball->Velocity.y; // 反转垂直速度
+                    // 重定位
+                    GLfloat penetration = Ball->Radius - std::abs(diff_vector.y);
+                    if (dir == UP)
+                        Ball->Position.y -= penetration; // 防止球卡在砖块内
+                    else
+                        Ball->Position.y += penetration; // 防止球卡在砖块内
+                }
+            }
+        }
+    }
+
+
+    // 挡板碰撞处理
+    Collision result = CheckCollision(*Ball, *Player);
+    if (std::get<0>(result) && !Ball->Stuck) { // 如果发生碰撞
+            // 反转垂直速度
+            Ball->Velocity.y = -1 * abs(Ball->Velocity.y);  // 确保球向上反弹
+
+            // 根据球与挡板的碰撞位置调整水平速度
+            GLfloat centerBoard = Player->Position.x + Player->Size.x / 2; // 挡板中心x坐标
+            GLfloat distance = (Ball->Position.x + Ball->Radius) - centerBoard; // 球心与挡板中心的水平距离
+            GLfloat percentage = distance / (Player->Size.x / 2); // 归一化到 [-1, 1]
+            // 根据碰撞位置调整球的水平速度
+            GLfloat strength = 2.0f; // 调整这个值以改变反弹的灵敏度
+            glm::vec2 oldVelocity = Ball->Velocity;
+            Ball->Velocity.x = INITIAL_BALL_VELOCITY.x * percentage * strength; // 调整水平速度
+            Ball->Velocity = glm::normalize(Ball->Velocity) * glm::length(oldVelocity); // 保持速度不变，只改变方向
+    }
+    
+};
+/*将球视为方形来计算碰撞
+Collision Game::CheckCollision(BallObject &one, GameObject &two) {
+    // AABB - AABB collision
+    // 检查两个AABB（轴对齐边界框）是否碰撞
+    bool collisionX = one.Position.x + one.Size.x >= two.Position.x &&
+                      two.Position.x + two.Size.x >= one.Position.x;
+    bool collisionY = one.Position.y + one.Size.y >= two.Position.y &&
+                      two.Position.y + two.Size.y >= one.Position.y;
+    return collisionX && collisionY;
+}
+*/
+
+// 更精确的圆形和AABB碰撞检测
+Collision Game::CheckCollision(BallObject &one, GameObject &two) {
+    // 获取球的中心点
+    glm::vec2 center(one.Position + one.Radius);
+    // 计算AABB的半尺寸和中心点
+    glm::vec2 aabb_half_extents(two.Size.x / 2, two.Size.y / 2);
+    glm::vec2 aabb_center(two.Position + aabb_half_extents);
+    // 计算两者之间的差值
+    glm::vec2 difference = center - aabb_center;
+    /*clamped 是将 difference 的 x 和 y 分量分别限制在 [-半宽, +半宽] 和 [-半高, +半高] 范围内，得到的结果表示从矩形中心到矩形边界上最近点的向量。*/
+    glm::vec2 clamped = glm::clamp(difference, -aabb_half_extents, aabb_half_extents);
+
+    // 获取最近点
+    glm::vec2 closest = aabb_center + clamped;
+
+    // 计算最近点与球心的距离
+    glm::vec2 closest_distance = closest - center;
+    // 如果最近点与球心的距离小于球的半径，则发生碰撞
+    if (glm::length(closest_distance) < one.Radius) {
+        // 碰撞发生，计算碰撞方向
+        Direction dir = VectorDirection(closest_distance);
+        return std::make_tuple(GL_TRUE, dir, closest_distance);
+    } else {
+        return std::make_tuple(GL_FALSE, UP, glm::vec2(0, 0));
+    }
+}
+
+Direction Game::VectorDirection(glm::vec2 target) {
+    glm::vec2 compass[] = {
+        glm::vec2(0.0f, 1.0f),  // up
+        glm::vec2(1.0f, 0.0f),  // right
+        glm::vec2(0.0f, -1.0f), // down
+        glm::vec2(-1.0f, 0.0f)  // left
+    };
+    GLfloat max = 0.0f;
+    GLuint best_match = -1;
+    // 遍历方向向量,找到与目标向量夹角最小的方向即是碰撞方向
+    for (GLuint i = 0; i < 4; i++) {
+        GLfloat dot_product = glm::dot(glm::normalize(target), compass[i]);
+        if (dot_product > max) {
+            max = dot_product;
+            best_match = i;
+        }
+    }
+    return (Direction)best_match;
+}
+
+void Game::Dead() {
+    if(Ball->Position.y >= Height) {
+        State = GAME_MENU;
     }
 }
