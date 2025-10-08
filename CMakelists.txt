@@ -23,6 +23,7 @@ add_executable(Breakout
     src/game_object.cpp
     src/ball_object.cpp
     src/particle_generator.cpp
+    src/post_proccessor.cpp
 )
 
 target_include_directories(Breakout PRIVATE

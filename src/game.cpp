@@ -19,6 +19,10 @@ BallObject  *Ball; //球对象
 
 ParticleGenerator   *Particles; //粒子生成器
 
+PostProcessor *Effects; //后期处理器
+
+GLfloat ShakeTime = 0.0f; //摇晃时间
+
 //Keys() 将数组中的所有元素初始化为 0（即 GL_FALSE），如果没有初始化数组中的元素会包含随机值
 //如果是vector则可以不初始化，因为vector会自动初始化所有成员为0
 Game::Game(GLuint width, GLuint height) 
@@ -34,6 +38,7 @@ void Game::Init() {
     // 初始化游戏资源
     ResourceManager::LoadShader("../shader/sprites.vs", "../shader/sprites.fs", nullptr, "sprite");
     ResourceManager::LoadShader("../shader/particle.vs", "../shader/particle.fs", nullptr, "particle");
+    ResourceManager::LoadShader("../shader/quad.vs", "../shader/quad.fs", nullptr, "postprocessing");
 
     // Load textures
     ResourceManager::LoadTexture("../textures/awesomeface.png", GL_TRUE, "face");
@@ -101,6 +106,8 @@ void Game::Init() {
         ResourceManager::GetTexture("particle"),
         500
     );
+
+    Effects = new PostProcessor(ResourceManager::GetShader("postprocessing"), this->Width, this->Height); // 初始化后期处理器
 }
 
 void Game::Update(GLfloat dt) {
@@ -109,6 +116,14 @@ void Game::Update(GLfloat dt) {
     this->DoCollisions(); //每帧都需要检查碰撞
     this->Dead(); //检查玩家是否死亡
     Particles->Update(dt, *Ball, 2, glm::vec2(Ball->Radius / 2)); // 每帧更新粒子生成器
+
+    if(ShakeTime > 0.0f) {
+        ShakeTime -= dt;
+        if(ShakeTime <= 0.0f) {
+            ShakeTime = 0.0f;
+            Effects->Shake = GL_FALSE;
+        }
+    }
 }
 
 void Game::ProcessInput(GLfloat dt) {
@@ -139,17 +154,21 @@ void Game::ProcessInput(GLfloat dt) {
 void Game::Render() {
     // 渲染游戏
     if (this->State == GAME_ACTIVE) {
+        Effects->BeginRender(); //在渲染场景前调用，绑定多重采样帧缓冲
+
         Renderer->DrawSprite(ResourceManager::GetTexture("background"), glm::vec2(0, 0), glm::vec2(this->Width, this->Height), 0.0f);
         this->Levels[this->Level].Draw(*Renderer);
         Player->Draw(*Renderer);
         Particles->Draw(); // 在其他物体之后，球体之前渲染粒子，粒子就会在所有其他物体面前，但在球体之后
         Ball->Draw(*Renderer);
+
+        Effects->EndRender(); //在渲染场景后调用，解决多重采样帧缓冲的内容到普通帧缓冲
+        Effects->Render(glfwGetTime()); //渲染四边形并应用后处理效果
     }
 }
 
 void Game::DoCollisions() {
    for (GameObject &box : this->Levels[this->Level].Bricks) {
-
         // 砖块碰撞处理
         if(!box.Destroyed) {
             Collision collision = CheckCollision(*Ball, box);
@@ -157,6 +176,11 @@ void Game::DoCollisions() {
                 // 如果砖块不是坚固的，标记为已销毁
                 if (!box.IsSolid)
                     box.Destroyed = GL_TRUE;
+                    else {
+                        // 如果是坚固的砖块，触发屏幕摇晃效果
+                        ShakeTime = 0.05f;
+                        Effects->Shake = GL_TRUE;
+                    }
                 // 碰撞后反转球的速度
                 Direction dir = std::get<1>(collision);
                 glm::vec2 diff_vector = std::get<2>(collision);

@@ -6,6 +6,7 @@
 
 #include "game_level.h"
 #include "particle_generator.h"
+#include "post_proccessor.h"
 
 
 // 游戏状态
