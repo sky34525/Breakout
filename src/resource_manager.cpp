@@ -4,6 +4,12 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
+#include <cstring>
+
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#include <sys/stat.h>
+#endif
 
 #define STB_IMAGE_IMPLEMENTATION // 在一个源文件中定义这个宏以实现stb_image的函数
 #include <stb_image.h>
@@ -31,7 +37,7 @@ Texture &ResourceManager::GetTexture(std::string name) {
 }
 
 void ResourceManager::Clear() {
-    // (Properly) delete all shaders	
+    // (Properly) delete all shaders
     for (auto iter : Shaders)
         glDeleteProgram(iter.second.ID); //删除着色器程序
         /*不是删除着色器，着色器应该在绑定到着色器程序之后马上删除*/
@@ -40,15 +46,54 @@ void ResourceManager::Clear() {
         glDeleteTextures(1, &iter.second.ID);
 }
 
+std::string ResourceManager::GetResourcePath(const std::string &relativePath) {
+#ifdef __APPLE__
+    // 获取可执行文件路径
+    char execPath[1024];
+    uint32_t size = sizeof(execPath);
+    if (_NSGetExecutablePath(execPath, &size) == 0) {
+        // 手动提取目录路径（不使用 dirname）
+        std::string fullPath(execPath);
+        size_t lastSlash = fullPath.find_last_of('/');
+        std::string basePath = fullPath.substr(0, lastSlash);
+
+        // 移除 relativePath 开头的 "../"
+        std::string cleanPath = relativePath;
+        if (cleanPath.substr(0, 3) == "../") {
+            cleanPath = cleanPath.substr(3);
+        }
+
+        // 尝试 App Bundle 路径 (Contents/MacOS -> Contents/Resources)
+        std::string appBundlePath = basePath + "/../Resources/" + cleanPath;
+        struct stat sb;
+        if (stat(appBundlePath.c_str(), &sb) == 0) {
+            return appBundlePath;
+        }
+
+        // 尝试相对路径（用于 build/ 目录）
+        std::string buildPath = basePath + "/" + relativePath;
+        if (stat(buildPath.c_str(), &sb) == 0) {
+            return buildPath;
+        }
+    }
+#endif
+    // 如果以上都失败，返回原始路径
+    return relativePath;
+}
+
 Shader ResourceManager::loadShaderFromFile(const GLchar *vShaderFile, const GLchar *fShaderFile, const GLchar *gShaderFile) {
     // 1. 从文件中读取顶点/片段/几何着色器的代码
     std::string vertexCode;
     std::string fragmentCode;
     std::string geometryCode;
     try {
+        // 获取正确的资源路径
+        std::string vPath = GetResourcePath(vShaderFile);
+        std::string fPath = GetResourcePath(fShaderFile);
+
         // 打开文件
-        std::ifstream vertexShaderFile(vShaderFile);
-        std::ifstream fragmentShaderFile(fShaderFile);
+        std::ifstream vertexShaderFile(vPath);
+        std::ifstream fragmentShaderFile(fPath);
         std::stringstream vShaderStream, fShaderStream;
         // 读取文件的缓冲内容到数据流中
         vShaderStream << vertexShaderFile.rdbuf();
@@ -61,7 +106,8 @@ Shader ResourceManager::loadShaderFromFile(const GLchar *vShaderFile, const GLch
         fragmentCode = fShaderStream.str();
         // 如果有几何着色器路径，读取几何着色器
         if (gShaderFile != nullptr) {
-            std::ifstream geometryShaderFile(gShaderFile);
+            std::string gPath = GetResourcePath(gShaderFile);
+            std::ifstream geometryShaderFile(gPath);
             std::stringstream gShaderStream;
             gShaderStream << geometryShaderFile.rdbuf();
             geometryShaderFile.close();
@@ -91,10 +137,13 @@ Texture ResourceManager::loadTextureFromFile(const GLchar *file, GLboolean alpha
         texture.Internal_Format = GL_RGBA;
         texture.Image_Format = GL_RGBA;
     }
+    // 获取正确的资源路径
+    std::string texturePath = GetResourcePath(file);
+
     // 加载图像
     int width, height, nrChannels;
     //nrChannels 用于输出图像的通道数（如RGB有3个通道，RGBA有4个通道）
-    unsigned char* data = stbi_load(file, &width, &height, &nrChannels, 0);// 0 表示保持原始通道数
+    unsigned char* data = stbi_load(texturePath.c_str(), &width, &height, &nrChannels, 0);// 0 表示保持原始通道数
     /*如果是RGB格式
     data[0] = 第1个像素的R值
     data[1] = 第1个像素的G值  

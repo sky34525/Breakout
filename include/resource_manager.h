@@ -24,6 +24,8 @@ public:
     static Texture &GetTexture(std::string name);
     // Properly de-allocates all loaded resources
     static void Clear();
+    // Get the correct resource path (supports both build/ and App Bundle)
+    static std::string GetResourcePath(const std::string &relativePath);
 private:
     ResourceManager() {
         // Constructor is private to prevent instantiation

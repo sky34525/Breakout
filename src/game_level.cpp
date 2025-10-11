@@ -1,5 +1,6 @@
 
 #include "game_level.h"
+#include "resource_manager.h"
 
 #include <fstream>
 #include <sstream>
@@ -8,10 +9,13 @@ void GameLevel::Load(const GLchar *file, GLuint levelWidth, GLuint levelHeight) 
     // 清除旧的砖块
     this->Bricks.clear();
 
+    // 获取正确的资源路径
+    std::string levelPath = ResourceManager::GetResourcePath(file);
+
     // 读取文件
     GLuint tileCode;
     std::string line;
-    std::ifstream fstream(file);
+    std::ifstream fstream(levelPath);
     std::vector<std::vector<GLuint>> tileData;
     if (fstream) {
         while (std::getline(fstream, line)) { //逐行读取

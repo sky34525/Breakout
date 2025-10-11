@@ -36,15 +36,69 @@ jobs:
         ls -lh build/Breakout
         file build/Breakout
 
-    - name: 上传构建产物
+    - name: 创建 App Bundle
+      run: |
+        mkdir -p "Breakout.app/Contents/MacOS"
+        mkdir -p "Breakout.app/Contents/Resources"
+
+        # 复制可执行文件
+        cp build/Breakout "Breakout.app/Contents/MacOS/"
+
+        # 复制资源文件
+        cp -r shader "Breakout.app/Contents/Resources/"
+        cp -r textures "Breakout.app/Contents/Resources/"
+        cp -r game_level "Breakout.app/Contents/Resources/"
+
+        # 创建 Info.plist
+        cat > "Breakout.app/Contents/Info.plist" << EOF
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+            <key>CFBundleExecutable</key>
+            <string>Breakout</string>
+            <key>CFBundleIdentifier</key>
+            <string>com.breakout.game</string>
+            <key>CFBundleName</key>
+            <string>Breakout</string>
+            <key>CFBundleVersion</key>
+            <string>1.0.0</string>
+            <key>CFBundleShortVersionString</key>
+            <string>1.0.0</string>
+            <key>CFBundlePackageType</key>
+            <string>APPL</string>
+            <key>NSHighResolutionCapable</key>
+            <true/>
+        </dict>
+        </plist>
+        EOF
+
+    - name: 创建 DMG
+      uses: create-dmg/create-dmg@v1
+      with:
+        name: Breakout-macOS
+        filename: Breakout.dmg
+        src: Breakout.app
+        volname: Breakout
+        window_pos: 200, 120
+        window_size: 600, 400
+        icon_size: 100
+        icon: textures/block.png
+        background: textures/background.jpg
+        text_size: 12
+
+    - name: 上传 DMG 产物
       uses: actions/upload-artifact@v4
       with:
-        name: breakout-macos
-        path: |
-          build/Breakout
-          shader/
-          textures/
-          game_level/
+        name: breakout-dmg
+        path: Breakout.dmg
+        retention-days: 7
+
+    - name: 上传 App Bundle 产物
+      uses: actions/upload-artifact@v4
+      with:
+        name: breakout-app
+        path: Breakout.app
         retention-days: 7
 
     - name: 运行基本测试
