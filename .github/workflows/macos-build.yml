@@ -74,18 +74,10 @@ jobs:
         EOF
 
     - name: 创建 DMG
-      uses: create-dmg/create-dmg@v1
+      uses: L-Super/create-dmg-actions@v1.0.3
       with:
-        name: Breakout-macOS
-        filename: Breakout.dmg
-        src: Breakout.app
-        volname: Breakout
-        window_pos: 200, 120
-        window_size: 600, 400
-        icon_size: 100
-        icon: textures/block.png
-        background: textures/background.jpg
-        text_size: 12
+        dmg_name: 'Breakout'
+        src_dir: 'Breakout.app'
 
     - name: 上传 DMG 产物
       uses: actions/upload-artifact@v4
