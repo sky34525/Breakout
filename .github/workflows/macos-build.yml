@@ -1,0 +1,55 @@
+name: macOS Build
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v4
+
+    - name: 安装依赖
+      run: |
+        brew update
+        brew install glfw glm pkg-config
+
+    - name: 配置 CMake
+      run: |
+        mkdir -p build
+        cd build
+        cmake .. -DCMAKE_BUILD_TYPE=Release
+
+    - name: 编译项目
+      run: |
+        cd build
+        make -j$(sysctl -n hw.ncpu)
+
+    - name: 检查可执行文件
+      run: |
+        ls -lh build/Breakout
+        file build/Breakout
+
+    - name: 上传构建产物
+      uses: actions/upload-artifact@v4
+      with:
+        name: breakout-macos
+        path: |
+          build/Breakout
+          shader/
+          textures/
+          game_level/
+        retention-days: 7
+
+    - name: 运行基本测试
+      run: |
+        cd build
+        # 由于 OpenGL 需要图形环境,这里只检查程序是否能正常加载
+        # 在无头环境中运行会失败,所以只做链接检查
+        otool -L ./Breakout
