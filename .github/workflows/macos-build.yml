@@ -49,6 +49,9 @@ jobs:
         cp -r textures "Breakout.app/Contents/Resources/"
         cp -r game_level "Breakout.app/Contents/Resources/"
 
+        # 复制应用图标
+        cp Breakout.icns "Breakout.app/Contents/Resources/"
+
         # 创建 Info.plist
         cat > "Breakout.app/Contents/Info.plist" << EOF
         <?xml version="1.0" encoding="UTF-8"?>
@@ -67,17 +70,30 @@ jobs:
             <string>1.0.0</string>
             <key>CFBundlePackageType</key>
             <string>APPL</string>
+            <key>CFBundleIconFile</key>
+            <string>Breakout.icns</string>
             <key>NSHighResolutionCapable</key>
             <true/>
         </dict>
         </plist>
         EOF
 
+    - name: 安装 create-dmg
+      run: brew install create-dmg
+
     - name: 创建 DMG
-      uses: L-Super/create-dmg-actions@v1.0.3
-      with:
-        dmg_name: 'Breakout'
-        src_dir: 'Breakout.app'
+      run: |
+        create-dmg \
+          --volname "Breakout" \
+          --volicon "Breakout.icns" \
+          --window-pos 200 120 \
+          --window-size 600 400 \
+          --icon-size 100 \
+          --icon "Breakout.app" 175 120 \
+          --hide-extension "Breakout.app" \
+          --app-drop-link 425 120 \
+          "Breakout.dmg" \
+          "Breakout.app"
 
     - name: 上传 DMG 产物
       uses: actions/upload-artifact@v4
