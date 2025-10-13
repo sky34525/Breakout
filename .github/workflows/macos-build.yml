@@ -78,6 +78,11 @@ jobs:
         </plist>
         EOF
 
+    - name: 对 App Bundle 进行临时签名
+      run: |
+        # 使用临时签名（ad-hoc signing）避免 macOS Gatekeeper 报错
+        codesign --force --deep --sign - "Breakout.app"
+
     - name: 安装 create-dmg
       run: brew install create-dmg
 
